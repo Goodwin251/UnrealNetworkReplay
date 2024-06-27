@@ -22,6 +22,7 @@ enum class ENetReplayCommand : uint8
 	TOSTART UMETA(DisplayName = "Return to start"),
 	RATE UMETA(DisplayName = "Change game rate"),
 	SYNC UMETA(DisplayName = "Synchronise replays"),
+	STOPRECORD UMETA(DisplayName = "Stop recording of replay"),
 	NONE UMETA(DisplayName = "None")
 };
 

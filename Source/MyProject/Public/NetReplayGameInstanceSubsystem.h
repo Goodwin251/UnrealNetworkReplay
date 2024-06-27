@@ -93,10 +93,6 @@ protected:
 	FEnumerateStreamsCallback OnEnumerateStreamsCompleteDelegate;
 	FDeleteFinishedStreamCallback OnDeleteFinishedStreamDelegate;
 	FRenameReplayCallback OnRenameReplayDelegate;
-	FTimerDelegate OnRecordTimeDelegate;
-
-	FTimerHandle TimerHandle_RecordReplayDelay;
-	FTimerHandle TimerHandle_RecordReplayDelayRMI;
 
 public:
 	//Asynchronic seek all replays in demo folder
@@ -114,7 +110,7 @@ public:
 	void StartRecordingGameInBP(FString CustomReplayName = "Replay");
 
 	UFUNCTION()
-	void StartRecord(const float RecordSecond);
+	void StartRecord();
 
 
 	//Stop record of game

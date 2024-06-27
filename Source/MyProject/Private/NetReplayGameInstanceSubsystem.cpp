@@ -106,15 +106,19 @@ void UNetReplaySubsystem::HandleCommand(FNetReplayCommand command)
 		break;
 	case ENetReplayCommand::RECORD:
 		UE_LOG(LogNetReplay, Log, TEXT("Received command: Recording replay"));
-		
-		/*OnRecordTimeDelegate.BindUFunction(this, "StartRecord", command.FloatPayload);
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_RecordReplayDelay, OnRecordTimeDelegate, 0.1, true);*/
-		StartRecord(0);
+		ReplayName = command.ReplayName;
+		ReplayFriendlyName = ReplayName;
+		StartRecord();
 		UE_LOG(LogNetReplay, Log, TEXT("Executed command: Recording replay"));
+		break;
+
+	case ENetReplayCommand::STOPRECORD:
+		UE_LOG(LogNetReplay, Log, TEXT("Received command: Stop recording replay."));
+		StopRecordingGame();
+		UE_LOG(LogNetReplay, Log, TEXT("Executed command: Stop recording replay."));
 		break;
 	}
 }
-
 void UNetReplaySubsystem::OnEnumerateStreamsComplete(const FEnumerateStreamsResult& Results)
 {
 	ReplaysInfoList = TArray<FReplayInfo>();
@@ -193,22 +197,14 @@ void UNetReplaySubsystem::StartRecordingGameInBP(FString CustomReplayName)
 		{
 			SendReplayCommand(command, addr);
 		}
-		StartRecord(0);
-		
-		//OnRecordTimeDelegate.BindUFunction(this, "StartRecord", seconds);
-		//GetWorld()->GetTimerManager().SetTimer(TimerHandle_RecordReplayDelayRMI, OnRecordTimeDelegate, 0.1, true);
-		//UE_LOG(LogNetReplay, Warning, TEXT("Set RecordReplayDelay timer until %d"), seconds);
+		StartRecord();
 	}	
 }
 
-void UNetReplaySubsystem::StartRecord(const float RecordSecond) //Used in BindUFunction!
+void UNetReplaySubsystem::StartRecord() //Used in BindUFunction!
 {
-	if (GetWorld()->GetTimeSeconds() >= RecordSecond) 
-	{
-		GetWorld()->GetGameInstance()->StartRecordingReplay(ReplayName, ReplayFriendlyName);
-		UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
-		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_RecordReplayDelay);
-	}
+	GetWorld()->GetGameInstance()->StartRecordingReplay(ReplayName, ReplayFriendlyName);
+	UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
 }
 
 void UNetReplaySubsystem::StopRecordingGame()
