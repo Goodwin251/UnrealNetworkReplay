@@ -90,34 +90,7 @@ void UNetReplaySubsystem::EnumerateAllStreams()
 void UNetReplaySubsystem::HandleCommand(FNetReplayCommand command)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, FString::Printf(TEXT("Second: %f"), command.FloatPayload));
-	switch (command.Command)
-	{
-	case ENetReplayCommand::PAUSE:
-		GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, FString::Printf(TEXT("PAUSE")));
-		break;
-	case ENetReplayCommand::PLAY:
-		GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, FString::Printf(TEXT("PLAY")));
-		break;
-	case ENetReplayCommand::REWINDTO:
-		GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, FString::Printf(TEXT("REWIND TO")));
-		break;
-	case ENetReplayCommand::TOSTART:
-		GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, FString::Printf(TEXT("START")));
-		break;
-	case ENetReplayCommand::RECORD:
-		UE_LOG(LogNetReplay, Log, TEXT("Received command: Recording replay"));
-		ReplayName = command.ReplayName;
-		ReplayFriendlyName = ReplayName;
-		StartRecord();
-		UE_LOG(LogNetReplay, Log, TEXT("Executed command: Recording replay"));
-		break;
-
-	case ENetReplayCommand::STOPRECORD:
-		UE_LOG(LogNetReplay, Log, TEXT("Received command: Stop recording replay."));
-		StopRecordingGame();
-		UE_LOG(LogNetReplay, Log, TEXT("Executed command: Stop recording replay."));
-		break;
-	}
+	OnCommandReciveDelegate.Broadcast(command);
 }
 void UNetReplaySubsystem::OnEnumerateStreamsComplete(const FEnumerateStreamsResult& Results)
 {
@@ -198,68 +171,115 @@ void UNetReplaySubsystem::StartRecordingGameInBP(FString CustomReplayName)
 			SendReplayCommand(command, addr);
 		}
 		StartRecord();
-	}	
+	}
 }
 
 void UNetReplaySubsystem::StartRecord() //Used in BindUFunction!
 {
-	GetWorld()->GetGameInstance()->StartRecordingReplay(ReplayName, ReplayFriendlyName);
-	UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
+	AsyncTask(ENamedThreads::GameThread, [&]()
+		{
+			if (UWorld* World = GetWorld())
+			{
+				if (UGameInstance* GameInstance = World->GetGameInstance())
+				{
+					GameInstance->StartRecordingReplay(ReplayName, ReplayFriendlyName);
+					UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
+				}
+			}
+		});
 }
 
 void UNetReplaySubsystem::StopRecordingGame()
 {
-	GetWorld()->GetGameInstance()->StopRecordingReplay();
-	UE_LOG(LogNetReplay, Log, TEXT("Recording has been stopped")); 
+	AsyncTask(ENamedThreads::GameThread, [&]()
+		{
+			if (UWorld* World = GetWorld())
+			{
+				if (UGameInstance* GameInstance = World->GetGameInstance())
+				{
+					GameInstance->StopRecordingReplay();
+					UE_LOG(LogNetReplay, Log, TEXT("Recording has been stopped"));
+				}
+			}
+		});
 }
-
 
 void UNetReplaySubsystem::StartReplay()
 {
-	GetWorld()->GetGameInstance()->PlayReplay(ReplayName, nullptr);
-	UE_LOG(LogNetReplay, Warning, TEXT("Playback of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
+	AsyncTask(ENamedThreads::GameThread, [&]()
+		{
+			if (UWorld* World = GetWorld())
+			{
+				if (UGameInstance* GameInstance = World->GetGameInstance())
+				{
+					GameInstance->PlayReplay(ReplayName, nullptr);
+					UE_LOG(LogNetReplay, Log, TEXT("Recording has been stopped"));
+				}
+			}
+		});	
 }
 
 void UNetReplaySubsystem::PauseReplay(const bool DoPause)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	
-	if (DoPause)
-	{
-		GetWorld()->GetWorldSettings()->SetPauserPlayerState(PC->PlayerState);
-		GetWorld()->bIsCameraMoveableWhenPaused = true;
-		if (PC->ShouldPerformFullTickWhenPaused())
-			UE_LOG(LogNetReplay, Log, TEXT("Replay is paused"))
-		else
-			UE_LOG(LogNetReplay, Error, TEXT("PlayerController->ShouldPerformFullTickWhenPaused return false -> Spectator movement can be restricted during game pause"))
-	}
-	else
-	{
-		GetWorld()->GetWorldSettings()->SetPauserPlayerState(nullptr);
-		UE_LOG(LogNetReplay, Log, TEXT("Replay is continued"));
-	}
+	AsyncTask(ENamedThreads::GameThread, [&]
+		{
+			APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+			if (UWorld* World = GetWorld()) 
+			{
+				if (AWorldSettings* WorldSettings = World->GetWorldSettings()) 
+				{
+					if (DoPause)
+					{
+						WorldSettings->SetPauserPlayerState(PC->PlayerState);
+						World->bIsCameraMoveableWhenPaused = true;
+						if (PC->ShouldPerformFullTickWhenPaused())
+							UE_LOG(LogNetReplay, Log, TEXT("Replay is paused"))
+						else
+							UE_LOG(LogNetReplay, Warning, TEXT("PlayerController->ShouldPerformFullTickWhenPaused return false -> Spectator movement can be restricted during game pause"))
+					}
+					else
+					{
+						WorldSettings->SetPauserPlayerState(nullptr);
+						UE_LOG(LogNetReplay, Log, TEXT("Replay is continued"));
+					}
+				}
+			}
+		});
 }
 
 void UNetReplaySubsystem::RewindTo(const int32 seconds)
 {
-	if (GetWorld()->GetDemoNetDriver() && GetWorld()->GetDemoNetDriver()->GetDemoTotalTime() > seconds)
-	{
-		GetWorld()->GetDemoNetDriver()->GetDemoTotalTime();
-		GetWorld()->GetDemoNetDriver()->GotoTimeInSeconds(seconds);
-	}
-	else
-		UE_LOG(LogNetReplay, Error, TEXT("Replay is smaller than time you want to rewind or DemoNetDriver doesn't exist."));
+	AsyncTask(ENamedThreads::GameThread, [&]
+		{
+			if (UWorld* World = GetWorld()) 
+			{
+				if (UDemoNetDriver* Driver = World->GetDemoNetDriver()) 
+				{
+					if (Driver && Driver->GetDemoTotalTime() > seconds)
+					{
+						Driver->GetDemoTotalTime();
+						Driver->GotoTimeInSeconds(seconds);
+					}
+					else
+						UE_LOG(LogNetReplay, Error, TEXT("Replay is smaller than time you want to rewind or DemoNetDriver doesn't exist."));
+				}
+			}
+		});
 }
 
 void UNetReplaySubsystem::ChangePlayRate(const float rate)
 {
-	if (rate == 0) 
-	{
-		UE_LOG(LogNetReplay, Warning, TEXT("You can't set play rate at 0, you need to pause by convinient way."));
-	}
-	else 
-	{
-		UGameplayStatics::SetGlobalTimeDilation(GetWorld(), rate);
-		UE_LOG(LogNetReplay, Log, TEXT("Play rate (time dilation) set to %f"), rate);
-	}
+	AsyncTask(ENamedThreads::GameThread, [&]
+		{
+			if (rate == 0)
+			{
+				UE_LOG(LogNetReplay, Warning, TEXT("You can't set play rate at 0, you need to pause by convinient way."));
+			}
+			else
+			{
+				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), rate);
+				UE_LOG(LogNetReplay, Log, TEXT("Play rate (time dilation) set to %f"), rate);
+			}
+		});
+
 }

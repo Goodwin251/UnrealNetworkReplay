@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Async/Async.h"
 
 #include "NetworkReplaySocket.h"
 #include "NetReplayCommand.h"
@@ -16,9 +17,8 @@
 
 #include "NetReplayGameInstanceSubsystem.generated.h"
 
-/**
- * 
- */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FNetReplayCommandRecieve, const FNetReplayCommand&, RecvCommand);
+
 UCLASS()
 class MYPROJECT_API UNetReplaySubsystem : public UGameInstanceSubsystem
 {
@@ -93,7 +93,8 @@ protected:
 	FEnumerateStreamsCallback OnEnumerateStreamsCompleteDelegate;
 	FDeleteFinishedStreamCallback OnDeleteFinishedStreamDelegate;
 	FRenameReplayCallback OnRenameReplayDelegate;
-
+	UPROPERTY(BlueprintAssignable)
+	FNetReplayCommandRecieve OnCommandReciveDelegate;
 public:
 	//Asynchronic seek all replays in demo folder
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
@@ -109,7 +110,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void StartRecordingGameInBP(FString CustomReplayName = "Replay");
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void StartRecord();
 
 
