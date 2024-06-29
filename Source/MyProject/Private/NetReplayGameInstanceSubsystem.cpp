@@ -228,17 +228,24 @@ void UNetReplaySubsystem::ChangePlayRateByRMI(const float rate)
 
 void UNetReplaySubsystem::StartRecord(FString CustomReplayName) //Used in BindUFunction!
 {
-	AsyncTask(ENamedThreads::GameThread, [&]()
-		{
-			if (UWorld* World = GetWorld())
+	if (bRMI) 
+	{
+		GetWorld()->GetGameInstance()->StartRecordingReplay(CustomReplayName, ReplayFriendlyName);
+	}
+	else 
+	{
+		AsyncTask(ENamedThreads::GameThread, [&]()
 			{
-				if (UGameInstance* GameInstance = World->GetGameInstance())
+				if (UWorld* World = GetWorld())
 				{
-					GameInstance->StartRecordingReplay(CustomReplayName, ReplayFriendlyName);
-					UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *CustomReplayName, *ReplayFriendlyName);
+					if (UGameInstance* GameInstance = World->GetGameInstance())
+					{
+						GameInstance->StartRecordingReplay(CustomReplayName, ReplayFriendlyName);
+						UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *CustomReplayName, *ReplayFriendlyName);
+					}
 				}
-			}
-		});
+			});
+	}
 }
 
 void UNetReplaySubsystem::StopRecording()
