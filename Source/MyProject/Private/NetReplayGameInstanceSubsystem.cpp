@@ -4,7 +4,6 @@
 #include "NetReplayGameInstanceSubsystem.h"
 DEFINE_LOG_CATEGORY(LogNetReplay);
 
-
 void UNetReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -26,8 +25,6 @@ void UNetReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	OnEnumerateStreamsCompleteDelegate = FEnumerateStreamsCallback::CreateUObject(this, &UNetReplaySubsystem::OnEnumerateStreamsComplete);
 	OnDeleteFinishedStreamDelegate = FDeleteFinishedStreamCallback::CreateUObject(this, &UNetReplaySubsystem::OnDeleteFinishedStreamComplete);
 	OnRenameReplayDelegate = FRenameReplayCallback::CreateUObject(this, &UNetReplaySubsystem::OnChangeNameComplete);
-	
-
 }
 
 void UNetReplaySubsystem::Deinitialize()
@@ -83,13 +80,12 @@ void UNetReplaySubsystem::RecieveMessagePayload(const FString& RecvStr)
 void UNetReplaySubsystem::EnumerateAllStreams()
 {
 	LocalStreamer->EnumerateStreams(FNetworkReplayVersion(), 0, FString(), FJsonSerializableArray(), OnEnumerateStreamsCompleteDelegate); //UserIndex just 0, because doesn't matter for PC LocalStream
-
 }
 
 
 void UNetReplaySubsystem::HandleCommand(FNetReplayCommand command)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, FString::Printf(TEXT("Second: %f"), command.FloatPayload));
+	UE_LOG(LogNetReplay, Log, TEXT("Command recieved: %s; float payload: %f"), command.Command, command.FloatPayload);
 	OnCommandReciveDelegate.Broadcast(command);
 }
 void UNetReplaySubsystem::OnEnumerateStreamsComplete(const FEnumerateStreamsResult& Results)
@@ -144,7 +140,7 @@ void UNetReplaySubsystem::OnChangeNameComplete(const FRenameReplayResult& Result
 
 
 
-void UNetReplaySubsystem::StartRecordingGameInBP(FString CustomReplayName)
+void UNetReplaySubsystem::StartRecordingByRMI(FString CustomReplayName)
 {
 	if (bRMI) 
 	{
@@ -164,17 +160,73 @@ void UNetReplaySubsystem::StartRecordingGameInBP(FString CustomReplayName)
 		ReplayName = FString::Format(TEXT("{0}_{1}-{2}-{3}_{4}-{5}-{6}_{7}"), args);
 		ReplayFriendlyName = ReplayName;
 		float seconds = GetWorld()->GetTimeSeconds() + 3;
-		FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::RECORD, seconds, ReplayName);
+		FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::RECORD, ReplayName, seconds, false);
 		
 		for (FSocketAddress addr : ClientsAddresses) 
 		{
 			SendReplayCommand(command, addr);
 		}
-		StartRecord();
+		StartRecord(ReplayName);
 	}
 }
 
-void UNetReplaySubsystem::StartRecord() //Used in BindUFunction!
+void UNetReplaySubsystem::StopRecordingByRMI()
+{
+	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::STOPRECORD, ReplayName, 0, false);
+
+	for (FSocketAddress addr : ClientsAddresses)
+	{
+		SendReplayCommand(command, addr);
+	}
+	StopRecording();
+}
+
+void UNetReplaySubsystem::StartReplayByRMI(const FString& TargetReplay)
+{
+	
+	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::PLAY, TargetReplay, 0, false);
+
+	for (FSocketAddress addr : ClientsAddresses)
+	{
+		SendReplayCommand(command, addr);
+	}
+	StartReplay(TargetReplay);
+}
+
+void UNetReplaySubsystem::PauseReplayByRMI(const bool DoPause)
+{
+	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::PAUSE, ReplayName, 0, DoPause);
+
+	for (FSocketAddress addr : ClientsAddresses)
+	{
+		SendReplayCommand(command, addr);
+	}
+	PauseReplay(DoPause);
+}
+
+void UNetReplaySubsystem::RewindToByRMI(const int32 seconds)
+{
+	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::REWINDTO, ReplayName, seconds, false);
+
+	for (FSocketAddress addr : ClientsAddresses)
+	{
+		SendReplayCommand(command, addr);
+	}
+	RewindTo(seconds);
+}
+
+void UNetReplaySubsystem::ChangePlayRateByRMI(const float rate)
+{
+	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::RATE, ReplayName, rate, false);
+
+	for (FSocketAddress addr : ClientsAddresses)
+	{
+		SendReplayCommand(command, addr);
+	}
+	ChangePlayRate(rate);
+}
+
+void UNetReplaySubsystem::StartRecord(FString CustomReplayName) //Used in BindUFunction!
 {
 	AsyncTask(ENamedThreads::GameThread, [&]()
 		{
@@ -182,14 +234,14 @@ void UNetReplaySubsystem::StartRecord() //Used in BindUFunction!
 			{
 				if (UGameInstance* GameInstance = World->GetGameInstance())
 				{
-					GameInstance->StartRecordingReplay(ReplayName, ReplayFriendlyName);
-					UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
+					GameInstance->StartRecordingReplay(CustomReplayName, ReplayFriendlyName);
+					UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *CustomReplayName, *ReplayFriendlyName);
 				}
 			}
 		});
 }
 
-void UNetReplaySubsystem::StopRecordingGame()
+void UNetReplaySubsystem::StopRecording()
 {
 	AsyncTask(ENamedThreads::GameThread, [&]()
 		{
@@ -204,7 +256,7 @@ void UNetReplaySubsystem::StopRecordingGame()
 		});
 }
 
-void UNetReplaySubsystem::StartReplay()
+void UNetReplaySubsystem::StartReplay(FString TargetReplay)
 {
 	AsyncTask(ENamedThreads::GameThread, [&]()
 		{
@@ -212,8 +264,9 @@ void UNetReplaySubsystem::StartReplay()
 			{
 				if (UGameInstance* GameInstance = World->GetGameInstance())
 				{
-					GameInstance->PlayReplay(ReplayName, nullptr);
-					UE_LOG(LogNetReplay, Log, TEXT("Recording has been stopped"));
+					TargetReplay == "" ? TargetReplay = ReplayName : TargetReplay = TargetReplay;
+					GameInstance->PlayReplay(TargetReplay, nullptr);
+					UE_LOG(LogNetReplay, Log, TEXT("Replay %s has been started"), );
 				}
 			}
 		});	

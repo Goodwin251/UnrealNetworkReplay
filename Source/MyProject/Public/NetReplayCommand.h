@@ -16,13 +16,13 @@ UENUM(BlueprintType)
 enum class ENetReplayCommand : uint8
 {
 	RECORD UMETA(DisplayName = "Start recording"),
-	PAUSE UMETA(DisplayName = "Pause"),
+	STOPRECORD UMETA(DisplayName = "Stop recording of replay"),
 	PLAY UMETA(DisplayName = "Play"),
+	PAUSE UMETA(DisplayName = "Pause"),
 	REWINDTO UMETA(DisplayName = "Rewind to"),
 	TOSTART UMETA(DisplayName = "Return to start"),
 	RATE UMETA(DisplayName = "Change game rate"),
 	SYNC UMETA(DisplayName = "Synchronise replays"),
-	STOPRECORD UMETA(DisplayName = "Stop recording of replay"),
 	NONE UMETA(DisplayName = "None")
 };
 
@@ -32,17 +32,18 @@ struct FNetReplayCommand
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
-	FString ReplayName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
 	ENetReplayCommand Command;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
+	FString StringPayload;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
 	float FloatPayload;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
+	bool BoolPayload;
 
 
-	FNetReplayCommand() : Command(ENetReplayCommand::NONE), FloatPayload(0), ReplayName("") {}
-	FNetReplayCommand(ENetReplayCommand Command) : Command(Command), FloatPayload(0), ReplayName("") {};
-	FNetReplayCommand(ENetReplayCommand Command, float Second) : Command(Command), FloatPayload(Second), ReplayName("") {};
-	FNetReplayCommand(ENetReplayCommand Command, float Second, const FString& ReplayName) : Command(Command), FloatPayload(Second), ReplayName(ReplayName) {};
+	FNetReplayCommand() : StringPayload(""), Command(ENetReplayCommand::NONE), FloatPayload(0),BoolPayload(false) {}
+	FNetReplayCommand(ENetReplayCommand Command) : Command(Command), StringPayload(""), FloatPayload(0), BoolPayload(false){};
+	FNetReplayCommand(ENetReplayCommand Command, const FString& StringValue, float FloatValue, bool BoolValue ) : StringPayload(StringValue), Command(Command), FloatPayload(FloatValue), BoolPayload(BoolValue) {};
 };
 
 USTRUCT(BlueprintType)

@@ -99,6 +99,7 @@ public:
 	//Asynchronic seek all replays in demo folder
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void FindAllReplays();
+
 	//Asynchronic delete replay by file name
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void DeleteReplay(const FString& name);
@@ -106,35 +107,43 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void ChangeFriendlyNameOfReplay(const FString& targetReplayName, const FString& newFriendlyName);
 
-	//Start record of game
-	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
-	void StartRecordingGameInBP(FString CustomReplayName = "Replay");
-
-	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
-	void StartRecord();
-
-
-	//Stop record of game
-	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
-	void StopRecordingGame();
-
-	
 	//Called when socket recieve something
 	UFUNCTION()
 	void RecieveMessagePayload(const FString& RecvStr);
-
-	//Hande incoming command
+	//Broadcast incoming command
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void HandleCommand(FNetReplayCommand command);
+
+
+
+	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
+	void StartRecordingByRMI(FString CustomReplayName = "Replay");
+	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
+	void StopRecordingByRMI();
+	UFUNCTION(BlueprintCallable, Category = "Replay control")
+	void StartReplayByRMI(const FString& TargetReplayName = "");
+	UFUNCTION(BlueprintCallable, Category = "Replay control")
+	void PauseReplayByRMI(const bool DoPause);
+	UFUNCTION(BlueprintCallable, Category = "Replay control")
+	void RewindToByRMI(const int32 seconds);
+	UFUNCTION(BlueprintCallable, Category = "Replay control")
+	void ChangePlayRateByRMI(const float rate);
+
+	//Start record of game
+	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
+	void StartRecord(FString CustomReplayName);
+	//Stop record of game
+	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
+	void StopRecording();
 	//Start replay
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
-	void StartReplay();
+	void StartReplay(FString TargetReplayName = "");
 	//Function to pause replay and whole game. Those who call function still can move.
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void PauseReplay(const bool DoPause);
 	//Will rewind replay to passed seconds value
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
-	void RewindTo(const int32 seconds);
+	void RewindTo(const int32 seconds);	
 	//Change speed of game
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void ChangePlayRate(const float rate);
