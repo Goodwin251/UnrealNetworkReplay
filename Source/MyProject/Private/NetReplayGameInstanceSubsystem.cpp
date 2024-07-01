@@ -85,7 +85,7 @@ void UNetReplaySubsystem::EnumerateAllStreams()
 
 void UNetReplaySubsystem::HandleCommand(FNetReplayCommand command)
 {
-	UE_LOG(LogNetReplay, Log, TEXT("Command recieved: %s; float payload: %f"), command.Command, command.FloatPayload);
+	UE_LOG(LogNetReplay, Log, TEXT("Command recieved!"));
 	OnCommandReciveDelegate.Broadcast(command);
 }
 void UNetReplaySubsystem::OnEnumerateStreamsComplete(const FEnumerateStreamsResult& Results)
@@ -157,16 +157,16 @@ void UNetReplaySubsystem::StartRecordingByRMI(FString CustomReplayName)
 		ReplayID = time.ToUnixTimestamp();
 		args.Add(FStringFormatArg(ReplayID));
 
-		ReplayName = FString::Format(TEXT("{0}_{1}-{2}-{3}_{4}-{5}-{6}_{7}"), args);
-		ReplayFriendlyName = ReplayName;
+		FString NewReplayName = FString::Format(TEXT("{0}_{1}-{2}-{3}_{4}-{5}-{6}_{7}"), args);
+		
 		float seconds = GetWorld()->GetTimeSeconds() + 3;
-		FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::RECORD, ReplayName, seconds, false);
+		FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::RECORD, NewReplayName, seconds, false);
 		
 		for (FSocketAddress addr : ClientsAddresses) 
 		{
 			SendReplayCommand(command, addr);
 		}
-		StartRecord(ReplayName);
+		StartRecord(NewReplayName);
 	}
 }
 
@@ -226,11 +226,12 @@ void UNetReplaySubsystem::ChangePlayRateByRMI(const float rate)
 	ChangePlayRate(rate);
 }
 
-void UNetReplaySubsystem::StartRecord(FString CustomReplayName) //Used in BindUFunction!
+void UNetReplaySubsystem::StartRecord(FString RecordingReplayName) //Used in BindUFunction!
 {
+	ReplayName = RecordingReplayName;
 	if (bRMI) 
 	{
-		GetWorld()->GetGameInstance()->StartRecordingReplay(CustomReplayName, ReplayFriendlyName);
+		GetWorld()->GetGameInstance()->StartRecordingReplay(ReplayName, ReplayFriendlyName);
 	}
 	else 
 	{
@@ -240,8 +241,8 @@ void UNetReplaySubsystem::StartRecord(FString CustomReplayName) //Used in BindUF
 				{
 					if (UGameInstance* GameInstance = World->GetGameInstance())
 					{
-						GameInstance->StartRecordingReplay(CustomReplayName, ReplayFriendlyName);
-						UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *CustomReplayName, *ReplayFriendlyName);
+						GameInstance->StartRecordingReplay(ReplayName, ReplayFriendlyName);
+						UE_LOG(LogNetReplay, Log, TEXT("Recording of %s : %s has been started"), *ReplayName, *ReplayFriendlyName);
 					}
 				}
 			});
