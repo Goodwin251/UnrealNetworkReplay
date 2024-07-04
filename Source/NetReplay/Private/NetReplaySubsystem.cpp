@@ -276,7 +276,6 @@ void UNetReplaySubsystem::PlayNamedReplay(FString TargetReplay)
 				{
 					GameInstance->PlayReplay(ReplayName, nullptr);
 					UE_LOG(LogNetReplay, Log, TEXT("Replay %s has been started"), );
-					PauseReplay(true);
 				}
 			}
 		});	

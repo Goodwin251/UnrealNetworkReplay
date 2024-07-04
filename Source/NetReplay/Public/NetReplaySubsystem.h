@@ -63,6 +63,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replays Managment")
 	bool bBinded;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replays Managment")
+	FString CharacterUniqueParam;
 
 public:
 	//Save all founded replays by FindAllReplays function
