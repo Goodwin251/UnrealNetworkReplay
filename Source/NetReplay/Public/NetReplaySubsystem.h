@@ -13,7 +13,7 @@
 #include "Engine/DemoNetDriver.h"
 #include <Kismet/GameplayStatics.h>
 #include "Runtime/NetworkReplayStreaming/LocalFileNetworkReplayStreaming/Public/LocalFileNetworkReplayStreaming.h"
-#include "NetworkReplayStreaming.h" 
+#include "NetworkReplayStreaming.h"  
 
 #include "NetReplaySubsystem.generated.h"
 
