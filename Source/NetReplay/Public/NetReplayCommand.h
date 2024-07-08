@@ -31,13 +31,13 @@ struct FNetReplayCommand
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetReplay Command")
 	ENetReplayCommand Command;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetReplay Command")
 	FString StringPayload;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetReplay Command")
 	float FloatPayload;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetworkReplay Struct")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NetReplay Command")
 	bool BoolPayload;
 
 
@@ -66,23 +66,43 @@ struct FReplayInfo
 {
 	GENERATED_BODY();
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replay information")
 	FString ReplayName;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replay information")
 	FString FriendlyName;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replay information")
 	FDateTime Timestamp;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replay information")
 	int64 SizeInBytes;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replay information")
 	int32 LengthInMS;
 
 
 	FReplayInfo() : ReplayName("Replay"), FriendlyName("Replay"), Timestamp(0), SizeInBytes(0), LengthInMS(0) {}
 	FReplayInfo(FString NewName, FString NewFriendlyName, FDateTime NewTimestamp, int64 newSize, int32 NewLengthInMS) : 
 		ReplayName(NewName), FriendlyName(NewFriendlyName), Timestamp(NewTimestamp), SizeInBytes(newSize), LengthInMS(NewLengthInMS) {}
+};
+
+USTRUCT(BlueprintType)
+struct FKeyframe 
+{
+	GENERATED_BODY();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
+	FString Name;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
+	int64 ID;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
+	float Time;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
+	FString Description;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
+	FString ReplayName;
+
+	FKeyframe() : Name("Default name"), ID(0), Time(0), Description("No description"), ReplayName("Replay") {}
+	FKeyframe(FString name, int64 id, float time, FString description, FString replayname) : Name(name), ID(id), Time(time), Description(description), ReplayName(replayname) {}
 };

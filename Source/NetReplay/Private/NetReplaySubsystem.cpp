@@ -180,6 +180,7 @@ void UNetReplaySubsystem::StopRecordingByRMI()
 		SendReplayCommand(command, addr);
 	}
 	StopRecording();
+	SaveReplayInformation();
 }
 
 void UNetReplaySubsystem::PlayNamedReplayByRMI(const FString& TargetReplay)
@@ -191,6 +192,7 @@ void UNetReplaySubsystem::PlayNamedReplayByRMI(const FString& TargetReplay)
 	{
 		SendReplayCommand(command, addr);
 	}
+	LoadReplayInformation(TargetReplay);
 	PlayNamedReplay(TargetReplay);
 }
 
@@ -259,6 +261,8 @@ void UNetReplaySubsystem::StopRecording()
 				if (UGameInstance* GameInstance = World->GetGameInstance())
 				{
 					GameInstance->StopRecordingReplay();
+
+
 					UE_LOG(LogNetReplay, Log, TEXT("Recording has been stopped"));
 				}
 			}
@@ -344,4 +348,32 @@ void UNetReplaySubsystem::ChangePlayRate(const float rate)
 			}
 		});
 
+}
+
+void UNetReplaySubsystem::SaveReplayInformation()
+{
+	if (UNetReplayInfoSave* SaveGameInstance = Cast<UNetReplayInfoSave>(UGameplayStatics::CreateSaveGameObject(UNetReplayInfoSave::StaticClass())))
+	{
+		FString str = "ReplaySave_" + ReplayName;
+		SaveGameInstance->SaveName = str;
+		SaveGameInstance->UserIndex = 0;
+		SaveGameInstance->ReplayName = ReplayName;
+		SaveGameInstance->Keyframes = ReplayKeyframes;
+		
+		if (UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SaveName, SaveGameInstance->UserIndex))
+		{
+			UE_LOG(LogNetReplay, Log, TEXT("Save %s for replay %s was successfully created"), *str, *ReplayName);
+		}
+
+	}
+}
+
+void UNetReplaySubsystem::LoadReplayInformation(const FString& TargetReplay)
+{
+	FString SlotName = "ReplaySave_" + TargetReplay;
+	if (UNetReplayInfoSave* LoadedGame = Cast<UNetReplayInfoSave>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
+	{
+		ReplayKeyframes = LoadedGame->Keyframes;
+		UE_LOG(LogTemp, Warning, TEXT("Information from %s for %s was successfully loaded"), *LoadedGame->SaveName, *TargetReplay);
+	}
 }

@@ -8,6 +8,7 @@
 
 #include "NetworkReplaySocket.h"
 #include "NetReplayCommand.h"
+#include "NetReplayInfoSave.h"
 
 #include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
 #include "Engine/DemoNetDriver.h"
@@ -70,6 +71,10 @@ public:
 	//Save all founded replays by FindAllReplays function
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replays Managment")
 	TArray<FReplayInfo> ReplaysInfoList;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replays Managment")
+	TArray<FKeyframe> ReplayKeyframes;
+
 
 	//Array of all client addresses, excluding RMI
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replay Socket")
@@ -154,4 +159,7 @@ public:
 	//Change speed of game
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void ChangePlayRate(const float rate);
+
+	void SaveReplayInformation();
+	void LoadReplayInformation(const FString& TargetReplay);
 };
