@@ -160,6 +160,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void ChangePlayRate(const float rate);
 
+protected:
+	
 	void SaveReplayInformation();
 	void LoadReplayInformation(const FString& TargetReplay);
 };

@@ -22,7 +22,6 @@ enum class ENetReplayCommand : uint8
 	REWINDTO UMETA(DisplayName = "Rewind to"),
 	TOSTART UMETA(DisplayName = "Return to start"),
 	RATE UMETA(DisplayName = "Change game rate"),
-	SYNC UMETA(DisplayName = "Synchronise replays"),
 	NONE UMETA(DisplayName = "None")
 };
 
@@ -95,14 +94,12 @@ struct FKeyframe
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
 	FString Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
-	int64 ID;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
 	float Time;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
 	FString Description;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Keyframe")
 	FString ReplayName;
 
-	FKeyframe() : Name("Default name"), ID(0), Time(0), Description("No description"), ReplayName("Replay") {}
-	FKeyframe(FString name, int64 id, float time, FString description, FString replayname) : Name(name), ID(id), Time(time), Description(description), ReplayName(replayname) {}
+	FKeyframe() : Name("Default name"), Time(0), Description("No description"), ReplayName("Replay") {}
+	FKeyframe(FString name, int64 id, float time, FString description, FString replayname) : Name(name), Time(time), Description(description), ReplayName(replayname) {}
 };
