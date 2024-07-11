@@ -19,6 +19,7 @@
 #include "NetReplaySubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FNetReplayCommandRecieve, const FNetReplayCommand&, RecvCommand);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FNetReplayAllReplaysFoundCallback, const TArray<FReplayInfo>&, ReplaysInfo);
 
 UCLASS()
 class NETREPLAY_API UNetReplaySubsystem : public UGameInstanceSubsystem
@@ -107,6 +108,9 @@ protected:
 	FRenameReplayCallback OnRenameReplayDelegate;
 	UPROPERTY(BlueprintAssignable)
 	FNetReplayCommandRecieve OnCommandReciveDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FNetReplayAllReplaysFoundCallback OnReplaysFoundDelegate;
+
 public:
 	//Asynchronic seek all replays in demo folder
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")

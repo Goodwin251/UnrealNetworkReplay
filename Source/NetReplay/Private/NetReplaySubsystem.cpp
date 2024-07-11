@@ -89,6 +89,7 @@ void UNetReplaySubsystem::HandleCommand(FNetReplayCommand command)
 	UE_LOG(LogNetReplay, Log, TEXT("Command recieved!"));
 	OnCommandReciveDelegate.Broadcast(command);
 }
+
 void UNetReplaySubsystem::OnEnumerateStreamsComplete(const FEnumerateStreamsResult& Results)
 {
 	ReplaysInfoList = TArray<FReplayInfo>();
@@ -97,6 +98,7 @@ void UNetReplaySubsystem::OnEnumerateStreamsComplete(const FEnumerateStreamsResu
 	{
 		ReplaysInfoList.Add(FReplayInfo(res.Name, res.FriendlyName, res.Timestamp, res.SizeInBytes, res.LengthInMS));
 	}
+	OnReplaysFoundDelegate.Broadcast(ReplaysInfoList);
 }
 
 void UNetReplaySubsystem::FindAllReplays()
@@ -149,12 +151,15 @@ void UNetReplaySubsystem::StartRecordingByRMI(FString CustomReplayName)
 
 		TArray<FStringFormatArg> args;
 		args.Add(FStringFormatArg(CustomReplayName));
-		args.Add(FStringFormatArg(time.GetYear()));
-		args.Add(FStringFormatArg(time.GetMonth()));
-		args.Add(FStringFormatArg(time.GetDay()));
+		
 		args.Add(FStringFormatArg(time.GetHour()));
 		args.Add(FStringFormatArg(time.GetMinute()));
 		args.Add(FStringFormatArg(time.GetSecond()));
+
+		args.Add(FStringFormatArg(time.GetDay()));
+		args.Add(FStringFormatArg(time.GetMonth()));
+		args.Add(FStringFormatArg(time.GetYear()));
+
 		ReplayID = time.ToUnixTimestamp();
 		args.Add(FStringFormatArg(ReplayID));
 
@@ -278,7 +283,7 @@ void UNetReplaySubsystem::PlayNamedReplay(FString TargetReplay)
 			{
 				if (UGameInstance* GameInstance = World->GetGameInstance())
 				{
-					GameInstance->PlayReplay(ReplayName, nullptr);
+					GameInstance->PlayReplay(TargetReplay, nullptr);
 					UE_LOG(LogNetReplay, Log, TEXT("Replay %s has been started"), );
 				}
 			}
