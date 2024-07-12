@@ -14,6 +14,7 @@ void UNetReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	bRMI = false;
 	bBinded = false;
+	bPaused = false;
 	ReplayName = "Replay";
 	ReplayFriendlyName = "Replay";
 		
@@ -188,6 +189,18 @@ void UNetReplaySubsystem::StopRecordingByRMI()
 	SaveReplayInformation();
 }
 
+float UNetReplaySubsystem::GetReplayLength()
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (UDemoNetDriver* Driver = World->GetDemoNetDriver())
+		{
+			return Driver->GetDemoTotalTime();
+		}
+	}
+	return 0.0f;
+}
+
 void UNetReplaySubsystem::PlayNamedReplayByRMI(const FString& TargetReplay)
 {
 	
@@ -212,7 +225,7 @@ void UNetReplaySubsystem::PauseReplayByRMI(const bool DoPause)
 	PauseReplay(DoPause);
 }
 
-void UNetReplaySubsystem::RewindToByRMI(const int32 seconds)
+void UNetReplaySubsystem::RewindToByRMI(const float seconds)
 {
 	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::REWINDTO, ReplayName, seconds, false);
 
@@ -303,6 +316,7 @@ void UNetReplaySubsystem::PauseReplay(const bool DoPause)
 					{
 						WorldSettings->SetPauserPlayerState(PC->PlayerState);
 						World->bIsCameraMoveableWhenPaused = true;
+						bPaused = true;
 						if (PC->ShouldPerformFullTickWhenPaused())
 							UE_LOG(LogNetReplay, Log, TEXT("Replay is paused"))
 						else
@@ -311,6 +325,7 @@ void UNetReplaySubsystem::PauseReplay(const bool DoPause)
 					else
 					{
 						WorldSettings->SetPauserPlayerState(nullptr);
+						bPaused = false;
 						UE_LOG(LogNetReplay, Log, TEXT("Replay is continued"));
 					}
 				}
@@ -318,7 +333,7 @@ void UNetReplaySubsystem::PauseReplay(const bool DoPause)
 		});
 }
 
-void UNetReplaySubsystem::RewindTo(const int32 seconds)
+void UNetReplaySubsystem::RewindTo(const float seconds)
 {
 	AsyncTask(ENamedThreads::GameThread, [&, seconds]
 		{
@@ -328,8 +343,11 @@ void UNetReplaySubsystem::RewindTo(const int32 seconds)
 				{
 					if (Driver && Driver->GetDemoTotalTime() > seconds)
 					{
-						Driver->GetDemoTotalTime();
 						Driver->GotoTimeInSeconds(seconds);
+						if (bPaused) 
+						{
+							PauseReplay(true);
+						}
 					}
 					else
 						UE_LOG(LogNetReplay, Error, TEXT("Replay is smaller than time you want to rewind or DemoNetDriver doesn't exist."));

@@ -68,6 +68,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replays Managment")
 	FString CharacterUniqueParam;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Replays Managment")
+	bool bPaused;
+
 public:
 	//Save all founded replays by FindAllReplays function
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replays Managment")
@@ -80,7 +83,6 @@ public:
 	//Array of all client addresses, excluding RMI
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replay Socket")
 	TArray<FSocketAddress> ClientsAddresses;
-
 
 	//Initialise NetworkReplaySocket, depends on IsRMI Subsystem get sender or receiving socket
 	UFUNCTION(BlueprintCallable, Category = "Replay Socket")
@@ -126,22 +128,29 @@ public:
 	//Called when socket recieve something
 	UFUNCTION()
 	void RecieveMessagePayload(const FString& RecvStr);
+		
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replay control")
+	//FReplayInfo CurrentReplayInfo;
+
+	
+
 	//Broadcast incoming command
-	UFUNCTION(BlueprintCallable, Category = "Replay control")
+	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void HandleCommand(FNetReplayCommand command);
-
-
-
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void StartRecordingByRMI(FString CustomReplayName = "Replay");
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void StopRecordingByRMI();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Replay control")
+	float GetReplayLength();
+
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void PlayNamedReplayByRMI(const FString& TargetReplayName = "");
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void PauseReplayByRMI(const bool DoPause);
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
-	void RewindToByRMI(const int32 seconds);
+	void RewindToByRMI(const float seconds);
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void ChangePlayRateByRMI(const float rate);
 
@@ -159,7 +168,7 @@ public:
 	void PauseReplay(const bool DoPause);
 	//Will rewind replay to passed seconds value
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
-	void RewindTo(const int32 seconds);	
+	void RewindTo(const float seconds);
 	//Change speed of game
 	UFUNCTION(BlueprintCallable, Category = "Replay control")
 	void ChangePlayRate(const float rate);
