@@ -10,7 +10,7 @@ void UNetReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	
 	Socket = nullptr;
 	Port = 0;
-	ReplayID = 0;
+	PlayRate = 1;
 
 	bRMI = false;
 	bBinded = false;
@@ -27,6 +27,8 @@ void UNetReplaySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	OnEnumerateStreamsCompleteDelegate = FEnumerateStreamsCallback::CreateUObject(this, &UNetReplaySubsystem::OnEnumerateStreamsComplete);
 	OnDeleteFinishedStreamDelegate = FDeleteFinishedStreamCallback::CreateUObject(this, &UNetReplaySubsystem::OnDeleteFinishedStreamComplete);
 	OnRenameReplayDelegate = FRenameReplayCallback::CreateUObject(this, &UNetReplaySubsystem::OnChangeNameComplete);
+	
+	OnGoToTimeDelegate = FOnGotoTimeDelegate::CreateUObject(this, &UNetReplaySubsystem::OnReplayGoToCallback);
 }
 
 void UNetReplaySubsystem::Deinitialize()
@@ -161,12 +163,11 @@ void UNetReplaySubsystem::StartRecordingByRMI(FString CustomReplayName)
 		args.Add(FStringFormatArg(time.GetMonth()));
 		args.Add(FStringFormatArg(time.GetYear()));
 
-		ReplayID = time.ToUnixTimestamp();
-		args.Add(FStringFormatArg(ReplayID));
+		args.Add(FStringFormatArg(time.ToUnixTimestamp()));
 
 		FString NewReplayName = FString::Format(TEXT("{0}_{1}-{2}-{3}_{4}-{5}-{6}_{7}"), args);
 		
-		float seconds = GetWorld()->GetTimeSeconds() + 3;
+		float seconds = GetWorld()->GetTimeSeconds();
 		FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::RECORD, NewReplayName, seconds, false);
 		
 		for (FSocketAddress addr : ClientsAddresses) 
@@ -205,7 +206,9 @@ void UNetReplaySubsystem::PlayNamedReplayByRMI(const FString& TargetReplay)
 {
 	
 	FNetReplayCommand command = FNetReplayCommand(ENetReplayCommand::PLAY, TargetReplay, 0, false);
-
+	
+	bBinded = false;
+	
 	for (FSocketAddress addr : ClientsAddresses)
 	{
 		SendReplayCommand(command, addr);
@@ -343,11 +346,7 @@ void UNetReplaySubsystem::RewindTo(const float seconds)
 				{
 					if (Driver && Driver->GetDemoTotalTime() > seconds)
 					{
-						Driver->GotoTimeInSeconds(seconds);
-						if (bPaused) 
-						{
-							PauseReplay(true);
-						}
+						Driver->GotoTimeInSeconds(seconds, OnGoToTimeDelegate);
 					}
 					else
 						UE_LOG(LogNetReplay, Error, TEXT("Replay is smaller than time you want to rewind or DemoNetDriver doesn't exist."));
@@ -360,14 +359,15 @@ void UNetReplaySubsystem::ChangePlayRate(const float rate)
 {
 	AsyncTask(ENamedThreads::GameThread, [&, rate]
 		{
-			if (rate == 0)
+			if (rate >= 0.1)
 			{
-				UE_LOG(LogNetReplay, Warning, TEXT("You can't set play rate at 0, you need to pause by convinient way."));
+				PlayRate = rate;
+				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), PlayRate);
+				UE_LOG(LogNetReplay, Log, TEXT("Play rate (time dilation) set to %f"), PlayRate);
 			}
 			else
 			{
-				UGameplayStatics::SetGlobalTimeDilation(GetWorld(), rate);
-				UE_LOG(LogNetReplay, Log, TEXT("Play rate (time dilation) set to %f"), rate);
+				UE_LOG(LogNetReplay, Warning, TEXT("You can't set play rate at 0."));
 			}
 		});
 
@@ -397,6 +397,18 @@ void UNetReplaySubsystem::LoadReplayInformation(const FString& TargetReplay)
 	if (UNetReplayInfoSave* LoadedGame = Cast<UNetReplayInfoSave>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
 	{
 		ReplayKeyframes = LoadedGame->Keyframes;
-		UE_LOG(LogTemp, Warning, TEXT("Information from %s for %s was successfully loaded"), *LoadedGame->SaveName, *TargetReplay);
+		UE_LOG(LogNetReplay, Log, TEXT("Information from %s for %s was successfully loaded"), *LoadedGame->SaveName, *TargetReplay);
+	}
+}
+
+void UNetReplaySubsystem::OnReplayGoToCallback(bool bWasSuccessful)
+{
+	if (bWasSuccessful) 
+	{
+		if (bPaused)
+			PauseReplayByRMI(bPaused);
+		if (PlayRate != 1)
+			ChangePlayRateByRMI(PlayRate);
+		OnRewindToDelegate.Broadcast();
 	}
 }

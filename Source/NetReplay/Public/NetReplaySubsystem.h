@@ -14,12 +14,15 @@
 #include "Engine/DemoNetDriver.h"
 #include <Kismet/GameplayStatics.h>
 #include "Runtime/NetworkReplayStreaming/LocalFileNetworkReplayStreaming/Public/LocalFileNetworkReplayStreaming.h"
-#include "NetworkReplayStreaming.h"  
+#include "NetworkReplayStreaming.h" 
+#include "Engine/DemoNetDriver.h"
 
 #include "NetReplaySubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FNetReplayCommandRecieve, const FNetReplayCommand&, RecvCommand);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FNetReplayAllReplaysFoundCallback, const TArray<FReplayInfo>&, ReplaysInfo);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNetReplayRewindToCallback);
+
 
 UCLASS()
 class NETREPLAY_API UNetReplaySubsystem : public UGameInstanceSubsystem
@@ -53,9 +56,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replay Socket")
 	//Save recieved data from another socket
 	FString RecievedPayload;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Replays Managment")
-	int64 ReplayID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Replays Managment")
 	bool bRMI;
@@ -70,6 +70,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Replays Managment")
 	bool bPaused;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Replay Control")
+	float PlayRate;
 
 public:
 	//Save all founded replays by FindAllReplays function
@@ -113,6 +116,10 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FNetReplayAllReplaysFoundCallback OnReplaysFoundDelegate;
 
+	FOnGotoTimeDelegate OnGoToTimeDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FNetReplayRewindToCallback OnRewindToDelegate;
+
 public:
 	//Asynchronic seek all replays in demo folder
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
@@ -128,12 +135,6 @@ public:
 	//Called when socket recieve something
 	UFUNCTION()
 	void RecieveMessagePayload(const FString& RecvStr);
-		
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Replay control")
-	//FReplayInfo CurrentReplayInfo;
-
-	
-
 	//Broadcast incoming command
 	UFUNCTION(BlueprintCallable, Category = "Replays Managment")
 	void HandleCommand(FNetReplayCommand command);
@@ -177,4 +178,6 @@ protected:
 	
 	void SaveReplayInformation();
 	void LoadReplayInformation(const FString& TargetReplay);
+	UFUNCTION()
+	void OnReplayGoToCallback(bool bWasSuccessful);
 };
